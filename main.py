@@ -1,4 +1,5 @@
 import os
+import sys
 from dotenv import load_dotenv
 from google import genai
 
@@ -11,11 +12,16 @@ client = genai.Client(api_key=api_key)
 
 
 def main():
-    print("Hello from aiagent!")
+    if len(sys.argv) != 2:
+        print("Please provide a prompt for the AI Agent to process.\nuv run main.py <prompt>")
+        sys.exit(1)
+
+    prompt = sys.argv[1]
+#    print("Hello from aiagent!")
 
     response = client.models.generate_content(
         model='gemini-2.0-flash-001',
-        contents="Why is Boot.dev such a great place to learn backend development? Use one paragraph maximum."
+        contents=prompt
     )
 
     print(response.text)
