@@ -2,6 +2,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
 
 load_dotenv()
@@ -16,12 +17,15 @@ def main():
         print("Please provide a prompt for the AI Agent to process.\nuv run main.py <prompt>")
         sys.exit(1)
 
-    prompt = sys.argv[1]
+    user_prompt = sys.argv[1]
+    messages = [
+        types.Content(role="user", parts=[types.Part(text=user_prompt)]),
+    ]
 #    print("Hello from aiagent!")
 
     response = client.models.generate_content(
         model='gemini-2.0-flash-001',
-        contents=prompt
+        contents=messages,
     )
 
     print(response.text)
