@@ -7,6 +7,7 @@ from functions.get_files_info import schema_get_files_info
 from functions.get_file_content import schema_get_file_content
 from functions.run_python_file import schema_run_python_file
 from functions.write_file import schema_write_file
+from call_function import call_function
 
 
 system_prompt = """
@@ -61,18 +62,25 @@ def main():
     prompt_tokens = response.usage_metadata.prompt_token_count
     response_tokens = response.usage_metadata.candidates_token_count
 
-    function_call_part = response.function_calls or []
+    if not response.function_calls:
+        return response.text
+    
+    for function_call_part in response.function_calls:       
+            function_call_result = call_function(function_call_part, verbose_flag == "--verbose")
+            if not function_call_result.parts[0].function_response.response:
+                raise Exception("The function did not produce a result, and was terminated.")
+            if verbose_flag == "--verbose":
+                print(f"-> {function_call_result.parts[0].function_response.response}")
+        
 
-    if function_call_part:
-        for call in function_call_part:
-            print(f"Calling function: {function_call_part[0].name}({function_call_part[0].args})")
-    else:
-        print(response.text)
 
-    if verbose_flag == "--verbose":
-        print(f"User prompt: {user_prompt}")
-        print(f"Prompt tokens: {prompt_tokens}")
-        print(f"Response tokens: {response_tokens}")
+
+
+
+    # if verbose_flag == "--verbose":
+    #     print(f"User prompt: {user_prompt}")
+    #     print(f"Prompt tokens: {prompt_tokens}")
+    #     print(f"Response tokens: {response_tokens}")
 
     
 
