@@ -20,7 +20,7 @@ When a user asks a question or makes a request, make a function call plan. You c
 - Execute Python files with optional arguments
 - Write or overwrite files
 
-All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
+All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons. Make sure to list the steps you will take to complete the task.
 """
 
 load_dotenv()
@@ -49,41 +49,67 @@ def main():
         verbose_flag = None
     messages = [
         types.Content(role="user", parts=[types.Part(text=user_prompt)]),
+       
     ]
-#    print("Hello from aiagent!")
 
-    response = client.models.generate_content(
-        model='gemini-2.0-flash-001',
-        contents=messages,
-        config=types.GenerateContentConfig(
-            tools=[available_functions], system_instruction=system_prompt),
-        
-    )
-    prompt_tokens = response.usage_metadata.prompt_token_count
-    response_tokens = response.usage_metadata.candidates_token_count
+    MAX_ITERATIONS = 20
 
-    if not response.function_calls:
-        return response.text
-    
-    for function_call_part in response.function_calls:       
-            function_call_result = call_function(function_call_part, verbose_flag == "--verbose")
-            if not function_call_result.parts[0].function_response.response:
-                raise Exception("The function did not produce a result, and was terminated.")
-            if verbose_flag == "--verbose":
-                print(f"-> {function_call_result.parts[0].function_response.response}")
+    for i in range(MAX_ITERATIONS):
+
+        response = client.models.generate_content(
+            model='gemini-2.0-flash-001',
+            contents=messages,
+            config=types.GenerateContentConfig(
+                tools=[available_functions], system_instruction=system_prompt),
+            
+        )
+
+
+
+        for candidate in response.candidates:
+            messages.append(candidate.content)
         
 
+        prompt_tokens = response.usage_metadata.prompt_token_count
+        response_tokens = response.usage_metadata.candidates_token_count
 
-
-
-
-    # if verbose_flag == "--verbose":
-    #     print(f"User prompt: {user_prompt}")
-    #     print(f"Prompt tokens: {prompt_tokens}")
-    #     print(f"Response tokens: {response_tokens}")
-
-    
+        if response.function_calls:
+            # return response.text
+        
+            for function_call_part in response.function_calls:       
+                    function_call_result = call_function(function_call_part, verbose_flag == "--verbose")
+                    name_to_echo = function_call_part.name
+                    tool_payload = function_call_result.parts[0].function_response.response
+                    messages.append(
+                        types.Content(
+                            role="user", 
+                            parts=[
+                                types.Part(
+                                    function_response=types.FunctionResponse(
+                                        name=function_call_part.name,
+                                        response=tool_payload,
+                                    )
+                                )
+                            ]
+                        )
+                        )
+                    
+                    # print(messages[-1])
+                    if not function_call_result.parts[0].function_response.response:
+                        raise Exception("The function did not produce a result, and was terminated.")
+                    if verbose_flag == "--verbose":
+                        print(f"-> {function_call_result.parts[0].function_response.response}")
+        
+        if response.function_calls:
+            continue
+        
+        if response.text:
+            print(response.text)
+            break
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()  
+    except Exception as e:
+        print(e)

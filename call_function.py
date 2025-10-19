@@ -30,7 +30,7 @@ def call_function(function_call_part, verbose=False):
     if verbose == False:
         print(f" - Calling function: {function_name}")
     else:
-        print(f"Calling function: {function_name}({func_args})")
+        print(f" - Calling function: {function_name}({func_args})")
     
     function_result = function_dict[function_name](**kwargs_dict)
     
@@ -44,6 +44,5 @@ def call_function(function_call_part, verbose=False):
         ],
     )
 
-    # print(function_result)
     
 
